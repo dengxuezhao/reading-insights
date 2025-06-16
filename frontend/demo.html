@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReadingInsights - 演示</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: #f8fafc;
+            color: #1e293b;
+        }
+        .demo-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .demo-header h1 {
+            margin: 0 0 0.5rem 0;
+            color: #3b82f6;
+            font-size: 2.5rem;
+        }
+        .demo-header p {
+            margin: 0;
+            color: #64748b;
+            font-size: 1.1rem;
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .feature-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .feature-card h3 {
+            margin: 0 0 1rem 0;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .feature-card ul {
+            margin: 0;
+            padding-left: 1.5rem;
+            color: #475569;
+        }
+        .feature-card li {
+            margin-bottom: 0.5rem;
+        }
+        .launch-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .launch-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            color: white;
+            text-decoration: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: transform 0.2s ease;
+            margin: 1rem;
+        }
+        .launch-button:hover {
+            transform: translateY(-2px);
+        }
+        .tech-stack {
+            background: #f1f5f9;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-top: 1.5rem;
+        }
+        .tech-stack h4 {
+            margin: 0 0 1rem 0;
+            color: #1e293b;
+        }
+        .tech-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .tech-tag {
+            background: #e2e8f0;
+            color: #475569;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        .screenshots {
+            margin-top: 2rem;
+            text-align: center;
+        }
+        .screenshots h3 {
+            margin-bottom: 1rem;
+            color: #1e293b;
+        }
+        .screenshot-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .screenshot-placeholder {
+            background: #f1f5f9;
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 2rem;
+            color: #64748b;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-header">
+        <h1>📊 ReadingInsights</h1>
+        <p>美观简约的阅读数据可视化界面</p>
+    </div>
+
+    <div class="features">
+        <div class="feature-card">
+            <h3>📊 数据概览</h3>
+            <ul>
+                <li>统计卡片展示核心指标</li>
+                <li>日历热力图显示全年阅读</li>
+                <li>趋势图展示30天变化</li>
+                <li>时段分布识别阅读习惯</li>
+                <li>进度环形图显示完成度</li>
+            </ul>
+        </div>
+        
+        <div class="feature-card">
+            <h3>💡 读书摘抄</h3>
+            <ul>
+                <li>预留摘抄功能位置</li>
+                <li>优雅的占位符设计</li>
+                <li>未来扩展准备就绪</li>
+                <li>与数据分析完美结合</li>
+            </ul>
+        </div>
+        
+        <div class="feature-card">
+            <h3>🎨 设计特色</h3>
+            <ul>
+                <li>现代简约界面风格</li>
+                <li>柔和舒适配色方案</li>
+                <li>流畅自然动画效果</li>
+                <li>完整响应式设计</li>
+                <li>深色模式自动适配</li>
+            </ul>
+        </div>
+        
+        <div class="feature-card">
+            <h3>🔧 技术优势</h3>
+            <ul>
+                <li>ECharts专业图表引擎</li>
+                <li>原生JavaScript高性能</li>
+                <li>模块化代码架构</li>
+                <li>跨浏览器兼容性</li>
+                <li>SEO友好HTML结构</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="launch-section">
+        <h2>🚀 立即体验</h2>
+        <p>点击下方按钮查看完整的阅读数据仪表盘</p>
+        <a href="index.html" class="launch-button">
+            启动数据中心
+        </a>
+        
+        <div class="tech-stack">
+            <h4>技术栈</h4>
+            <div class="tech-tags">
+                <span class="tech-tag">HTML5</span>
+                <span class="tech-tag">CSS3</span>
+                <span class="tech-tag">JavaScript ES6+</span>
+                <span class="tech-tag">ECharts 5.x</span>
+                <span class="tech-tag">响应式设计</span>
+                <span class="tech-tag">模块化开发</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="screenshots">
+        <h3>界面预览</h3>
+        <div class="screenshot-grid">
+            <div class="screenshot-placeholder">
+                📊<br>统计卡片<br>核心数据展示
+            </div>
+            <div class="screenshot-placeholder">
+                📅<br>日历热力图<br>全年活跃度
+            </div>
+            <div class="screenshot-placeholder">
+                📈<br>趋势分析<br>时长页数变化
+            </div>
+            <div class="screenshot-placeholder">
+                🕐<br>时段分布<br>24小时习惯
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 简单的页面增强
+        document.addEventListener('DOMContentLoaded', function() {
+            const launchButton = document.querySelector('.launch-button');
+            
+            launchButton.addEventListener('click', function(e) {
+                // 添加点击效果
+                this.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    this.style.transform = '';
+                }, 150);
+            });
+            
+            // 特性卡片悬停效果
+            const featureCards = document.querySelectorAll('.feature-card');
+            featureCards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-4px)';
+                    this.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.15)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = '';
+                    this.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
+                });
+            });
+        });
+    </script>
+</body>
+</html> 

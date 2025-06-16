@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KOReader API 调试页面</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            border: 1px solid #e9ecef;
+            font-size: 12px;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .log {
+            max-height: 300px;
+            overflow-y: auto;
+            background: #000;
+            color: #0f0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 KOReader API 调试面板</h1>
+        <div class="grid">
+            <div>
+                <h2>🔧 系统状态</h2>
+                <div id="system-status"></div>
+                <button onclick="checkSystemStatus()">检查系统状态</button>
+                <button onclick="loadToken()">加载令牌</button>
+                <button onclick="testAllAPIs()">测试所有API</button>
+                <button onclick="clearLogs()">清空日志</button>
+            </div>
+            <div>
+                <h2>📊 实时数据</h2>
+                <div id="real-data"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>📈 统计数据展示</h2>
+        <div id="stats-display"></div>
+    </div>
+
+    <div class="container">
+        <h2>📚 书籍列表</h2>
+        <div id="books-display"></div>
+    </div>
+
+    <div class="container">
+        <h2>🖥️ 控制台日志</h2>
+        <div id="console-log" class="log"></div>
+    </div>
+
+    <script>
+        const baseURL = 'http://localhost:8000/api/v1';
+        let authToken = null;
+        let logContainer = null;
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            logContainer = document.getElementById('console-log');
+            log('🚀 调试面板已加载');
+            checkSystemStatus();
+        });
+
+        // 日志函数
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}`;
+            console.log(logEntry);
+            
+            if (logContainer) {
+                logContainer.innerHTML += logEntry + '\n';
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+        }
+
+        function clearLogs() {
+            if (logContainer) {
+                logContainer.innerHTML = '';
+            }
+        }
+
+        // 显示状态
+        function showStatus(containerId, message, type = 'info') {
+            const container = document.getElementById(containerId);
+            const statusDiv = document.createElement('div');
+            statusDiv.className = `status ${type}`;
+            statusDiv.innerHTML = message;
+            container.appendChild(statusDiv);
+        }
+
+        // 检查系统状态
+        async function checkSystemStatus() {
+            const container = document.getElementById('system-status');
+            container.innerHTML = '';
+            
+            log('🔍 检查系统状态...');
+            
+            // 检查后端服务器
+            try {
+                const response = await fetch(`${baseURL.replace('/api/v1', '')}/health`);
+                if (response.ok) {
+                    showStatus('system-status', '✅ 后端服务器运行正常', 'success');
+                    log('✅ 后端服务器连接成功');
+                } else {
+                    showStatus('system-status', '❌ 后端服务器响应异常', 'error');
+                    log('❌ 后端服务器响应异常: ' + response.status);
+                }
+            } catch (error) {
+                showStatus('system-status', '❌ 无法连接后端服务器', 'error');
+                log('❌ 后端服务器连接失败: ' + error.message);
+            }
+
+            // 检查令牌文件
+            try {
+                const response = await fetch('/test_token.txt');
+                if (response.ok) {
+                    showStatus('system-status', '✅ 令牌文件可访问', 'success');
+                    log('✅ 令牌文件访问成功');
+                } else {
+                    showStatus('system-status', '❌ 令牌文件不可访问', 'error');
+                    log('❌ 令牌文件访问失败: ' + response.status);
+                }
+            } catch (error) {
+                showStatus('system-status', '❌ 令牌文件读取失败', 'error');
+                log('❌ 令牌文件读取失败: ' + error.message);
+            }
+        }
+
+        // 加载令牌
+        async function loadToken() {
+            log('🔑 开始加载认证令牌...');
+            
+            try {
+                const response = await fetch('/test_token.txt');
+                if (response.ok) {
+                    authToken = (await response.text()).trim();
+                    showStatus('system-status', `✅ 令牌加载成功 (长度: ${authToken.length})`, 'success');
+                    log(`✅ 令牌加载成功，长度: ${authToken.length}`);
+                    log(`🔑 令牌前缀: ${authToken.substring(0, 30)}...`);
+                } else {
+                    showStatus('system-status', '❌ 令牌加载失败', 'error');
+                    log('❌ 令牌加载失败: ' + response.status);
+                }
+            } catch (error) {
+                showStatus('system-status', '❌ 令牌加载异常', 'error');
+                log('❌ 令牌加载异常: ' + error.message);
+            }
+        }
+
+        // API请求
+        async function apiRequest(endpoint) {
+            const url = `${baseURL}${endpoint}`;
+            log(`🌐 请求: ${url}`);
+            
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            
+            if (authToken) {
+                headers['Authorization'] = `Bearer ${authToken}`;
+            }
+            
+            try {
+                const response = await fetch(url, { headers });
+                log(`📡 响应状态: ${response.status} ${response.statusText}`);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`${response.status}: ${errorText}`);
+                }
+                
+                const data = await response.json();
+                log(`✅ 请求成功: ${endpoint}`);
+                return data;
+            } catch (error) {
+                log(`❌ 请求失败: ${endpoint} - ${error.message}`);
+                return null;
+            }
+        }
+
+        // 测试所有API
+        async function testAllAPIs() {
+            if (!authToken) {
+                await loadToken();
+            }
+            
+            if (!authToken) {
+                log('❌ 无法获取令牌，停止API测试');
+                return;
+            }
+            
+            log('🧪 开始测试所有API...');
+            
+            // 测试摘要API
+            const summary = await apiRequest('/statistics/dashboard/summary');
+            if (summary) {
+                displayStats(summary);
+            }
+            
+            // 测试日历API
+            const calendar = await apiRequest('/statistics/calendar');
+            if (calendar) {
+                log(`📅 日历数据: ${calendar.active_days}个活跃天数，总计${Math.floor(calendar.total_reading_time/3600)}小时`);
+            }
+            
+            // 测试趋势API
+            const trends = await apiRequest('/statistics/trends?days=7');
+            if (trends) {
+                log(`📈 趋势数据: ${trends.period_days}天，${trends.trends.length}条记录`);
+            }
+            
+            // 显示真实数据
+            displayRealData({ summary, calendar, trends });
+        }
+
+        // 显示统计数据
+        function displayStats(summary) {
+            const container = document.getElementById('stats-display');
+            container.innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">${summary.total_books}</div>
+                        <div class="stat-label">总书籍数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${Math.floor(summary.total_reading_time / 3600)}</div>
+                        <div class="stat-label">总阅读时长(小时)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${summary.total_pages_read}</div>
+                        <div class="stat-label">总阅读页数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${summary.total_highlights}</div>
+                        <div class="stat-label">高亮摘抄</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${summary.reading_streak}</div>
+                        <div class="stat-label">连续阅读天数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${summary.avg_reading_speed.toFixed(1)}</div>
+                        <div class="stat-label">平均阅读速度(页/小时)</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 显示真实数据
+        function displayRealData(data) {
+            const container = document.getElementById('real-data');
+            container.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+        }
+
+        // 显示书籍数据
+        async function displayBooks() {
+            // 这里可以添加书籍列表API调用
+            log('📚 书籍列表功能待实现');
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReadingInsights - 阅读数据分析</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 顶部导航栏 -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <div class="logo-icon">📚</div>
+                    <h1 class="app-title">ReadingInsights</h1>
+                </div>
+                <div class="user-section">
+                    <div class="user-info">
+                        <span class="user-name">阅读者</span>
+                        <div class="user-avatar">👤</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主内容区域 -->
+        <main class="main-content">
+            <!-- 标签页导航 -->
+            <nav class="tab-navigation">
+                <button class="tab-button active" data-tab="dashboard">
+                    <span class="tab-icon">📊</span>
+                    <span class="tab-text">数据概览</span>
+                </button>
+                <button class="tab-button" data-tab="highlights">
+                    <span class="tab-icon">💡</span>
+                    <span class="tab-text">读书摘抄</span>
+                </button>
+            </nav>
+
+            <!-- 数据概览页面 -->
+            <div class="tab-content active" id="dashboard-tab">
+                <!-- 统计卡片区域 -->
+                <section class="stats-cards">
+                    <div class="card stat-card">
+                        <div class="card-header">
+                            <h3 class="card-title">总阅读时长</h3>
+                            <div class="card-icon">⏰</div>
+                        </div>
+                        <div class="card-content">
+                            <div class="stat-value" id="total-reading-time">--</div>
+                            <div class="stat-label">小时</div>
+                        </div>
+                    </div>
+
+                    <div class="card stat-card">
+                        <div class="card-header">
+                            <h3 class="card-title">阅读书籍</h3>
+                            <div class="card-icon">📖</div>
+                        </div>
+                        <div class="card-content">
+                            <div class="stat-value" id="total-books">--</div>
+                            <div class="stat-label">本</div>
+                        </div>
+                    </div>
+
+                    <div class="card stat-card">
+                        <div class="card-header">
+                            <h3 class="card-title">阅读页数</h3>
+                            <div class="card-icon">📄</div>
+                        </div>
+                        <div class="card-content">
+                            <div class="stat-value" id="total-pages">--</div>
+                            <div class="stat-label">页</div>
+                        </div>
+                    </div>
+
+                    <div class="card stat-card">
+                        <div class="card-header">
+                            <h3 class="card-title">连续阅读</h3>
+                            <div class="card-icon">🔥</div>
+                        </div>
+                        <div class="card-content">
+                            <div class="stat-value" id="reading-streak">--</div>
+                            <div class="stat-label">天</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 图表区域 -->
+                <section class="charts-section">
+                    <!-- 日历热力图 -->
+                    <div class="card chart-card">
+                        <div class="card-header">
+                            <h3 class="card-title">阅读日历</h3>
+                            <div class="card-subtitle">今年的阅读活跃度</div>
+                        </div>
+                        <div class="card-content">
+                            <div class="chart-container" id="calendar-chart"></div>
+                        </div>
+                    </div>
+
+                    <!-- 阅读趋势图 -->
+                    <div class="card chart-card">
+                        <div class="card-header">
+                            <h3 class="card-title">阅读趋势</h3>
+                            <div class="card-subtitle">最近30天的阅读时长变化</div>
+                        </div>
+                        <div class="card-content">
+                            <div class="chart-container" id="trend-chart"></div>
+                        </div>
+                    </div>
+
+                    <!-- 双列图表 -->
+                    <div class="charts-row">
+                        <!-- 阅读时段分布 -->
+                        <div class="card chart-card">
+                            <div class="card-header">
+                                <h3 class="card-title">阅读时段</h3>
+                                <div class="card-subtitle">一天中的阅读分布</div>
+                            </div>
+                            <div class="card-content">
+                                <div class="chart-container" id="hour-chart"></div>
+                            </div>
+                        </div>
+
+                        <!-- 书籍进度 -->
+                        <div class="card chart-card">
+                            <div class="card-header">
+                                <h3 class="card-title">阅读进度</h3>
+                                <div class="card-subtitle">书籍完成情况</div>
+                            </div>
+                            <div class="card-content">
+                                <div class="chart-container" id="progress-chart"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- KOReader 原生风格图表 -->
+                <section class="koreader-charts-section">
+                    <!-- 月度日历视图 -->
+                    <div class="card chart-card">
+                        <div class="card-header">
+                            <h3 class="card-title">月度阅读日历</h3>
+                            <div class="card-subtitle">KOReader风格的日历视图</div>
+                        </div>
+                        <div class="card-content">
+                            <div class="month-calendar-container" id="month-calendar"></div>
+                        </div>
+                    </div>
+
+                    <!-- 周统计面板 -->
+                    <div class="card chart-card">
+                        <div class="card-header">
+                            <h3 class="card-title">最近一周统计</h3>
+                            <div class="card-subtitle">周度阅读详情</div>
+                        </div>
+                        <div class="card-content">
+                            <div class="week-stats-container" id="week-stats"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 当前在读书单 -->
+                <section class="reading-list-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">当前在读书单</h3>
+                            <div class="card-subtitle">正在阅读的书籍明细</div>
+                        </div>
+                        <div class="card-content">
+                            <div class="reading-list" id="reading-list">
+                                <!-- 书单将通过JavaScript填充 -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- 读书摘抄页面 -->
+            <div class="tab-content" id="highlights-tab">
+                <div class="highlights-container">
+                    <div class="highlights-header">
+                        <h2 class="highlights-title">读书摘抄</h2>
+                        <div class="highlights-subtitle">记录阅读中的精彩片段</div>
+                    </div>
+                    
+                    <div class="highlights-placeholder">
+                        <div class="placeholder-icon">💡</div>
+                        <div class="placeholder-text">
+                            <h3>摘抄功能即将上线</h3>
+                            <p>这里将展示您在阅读过程中收集的精彩摘抄和笔记</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 加载指示器 -->
+        <div class="loading-overlay" id="loading-overlay">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">正在加载数据...</div>
+        </div>
+    </div>
+
+    <script src="js/dashboard.js"></script>
+</body>
+</html> 

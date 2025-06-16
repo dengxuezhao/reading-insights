@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  # PostgreSQL数据库
+  postgres:
+    image: postgres:15-alpine
+    container_name: koreader_postgres
+    environment:
+      POSTGRES_DB: koreader_data
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - koreader_network
+
+  # Redis缓存（可选，用于会话存储和缓存）
+  redis:
+    image: redis:7-alpine
+    container_name: koreader_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - koreader_network
+
+  # 后端应用
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    container_name: koreader_backend
+    environment:
+      - DEBUG=True
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=password
+      - DB_NAME=koreader_data
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - uploads:/app/uploads
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - koreader_network
+    command: uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # 前端应用（当前占位，待前端开发完成后配置）
+  # frontend:
+  #   build:
+  #     context: .
+  #     dockerfile: docker/Dockerfile.frontend
+  #   container_name: koreader_frontend
+  #   ports:
+  #     - "3000:3000"
+  #   volumes:
+  #     - ./frontend:/app
+  #   depends_on:
+  #     - backend
+  #   networks:
+  #     - koreader_network
+
+volumes:
+  postgres_data:
+  redis_data:
+  uploads:
+
+networks:
+  koreader_network:
+    driver: bridge 
