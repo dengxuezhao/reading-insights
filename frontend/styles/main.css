@@ -252,6 +252,7 @@ body {
     width: 100%;
     box-sizing: border-box;
     overflow: hidden;
+    position: relative;
 }
 
 /* 统计卡片特殊样式 */
@@ -309,6 +310,9 @@ body {
 .month-calendar-container {
     min-height: 600px;
     position: relative;
+    max-width: 100%;
+    margin: 0 auto;
+    overflow: hidden;
 }
 
 .calendar-header {
@@ -317,6 +321,8 @@ body {
     align-items: center;
     margin-bottom: 1rem;
     padding: 0 1rem;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .calendar-month {
@@ -354,6 +360,10 @@ body {
     border: 1px solid var(--border-color);
     border-radius: 8px;
     overflow: hidden;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0 auto;
 }
 
 .calendar-day {
@@ -363,6 +373,9 @@ body {
     position: relative;
     cursor: pointer;
     transition: background-color 0.2s ease;
+    overflow: hidden;
+    word-wrap: break-word;
+    box-sizing: border-box;
 }
 
 .calendar-day:hover {
@@ -413,6 +426,9 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     position: relative;
+    max-width: 100%;
+    width: calc(100% - 8px);
+    box-sizing: border-box;
 }
 
 .reading-entry.continuous {
@@ -1003,11 +1019,24 @@ body {
     .calendar-day {
         min-height: 60px;
         font-size: 0.75rem;
+        padding: 0.25rem;
     }
     
     .reading-entry {
         font-size: 0.65rem;
         padding: 1px 3px;
+    }
+    
+    .month-calendar-container {
+        min-height: 400px;
+        overflow-x: auto;
+        width: 100%;
+    }
+    
+    .calendar-grid {
+        min-width: 320px;
+        width: 100%;
+        max-width: 100%;
     }
     
     .week-summary {

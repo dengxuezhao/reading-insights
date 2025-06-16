@@ -2,6 +2,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from pathlib import Path
 
 from backend.app.config import settings
 from backend.app.api.v1.router import api_router
@@ -69,18 +72,23 @@ app.add_middleware(
 # 注册API路由
 app.include_router(api_router, prefix="/api/v1")
 
+# 获取前端文件路径
+frontend_path = Path(__file__).parent.parent.parent / "frontend"
 
+# 挂载静态文件服务
+app.mount("/js", StaticFiles(directory=str(frontend_path / "js")), name="js")
+app.mount("/styles", StaticFiles(directory=str(frontend_path / "styles")), name="styles")
+
+# 根路径返回前端页面
 @app.get("/")
-async def root():
-    """根路径健康检查"""
-    return {"message": "ReadingInsights API正在运行", "version": "1.0.0"}
-
+async def serve_frontend():
+    """服务前端页面"""
+    return FileResponse(str(frontend_path / "index.html"))
 
 @app.get("/health")
 async def health_check():
     """健康检查端点"""
     return {"status": "healthy"}
-
 
 @app.get("/scheduler/status")
 async def scheduler_status():

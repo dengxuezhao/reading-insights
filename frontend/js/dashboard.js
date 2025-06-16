@@ -4,10 +4,22 @@
 
 class KOReaderDashboard {
     constructor() {
-        this.baseURL = 'http://localhost:8000/api/v1';
+        // 自动检测当前访问地址，构建正确的API基础URL
+        this.baseURL = `${window.location.protocol}//${window.location.host}/api/v1`;
+        
+        // 确保baseURL使用HTTPS和正确的域名
+        this.baseURL = this.baseURL
+            .replace('http://', 'https://')
+            .replace('152.70.115.148', 'koreader.xuezhao.space');
+            
+        console.log('🔧 初始化baseURL:', this.baseURL);
+        
         this.charts = {};
         this.currentUser = null;
         this.authToken = null;
+        
+        // 状态标记
+        this.mixedContentWarningShown = false;
         
         this.init();
     }
@@ -95,8 +107,8 @@ class KOReaderDashboard {
         // 确保认证令牌加载完成
         await this.loadAuthToken();
         
-        // 启动时立即同步一次数据
-        await this.performStartupSync();
+        // 启动时立即同步一次数据 - 已禁用自动同步，避免页面刷新时频繁同步
+        // await this.performStartupSync();
         
         await this.loadData();
         this.setupCharts();
@@ -160,7 +172,17 @@ class KOReaderDashboard {
      * API 请求封装
      */
     async apiRequest(endpoint, options = {}) {
-        const url = `${this.baseURL}${endpoint}`;
+        let url = `${this.baseURL}${endpoint}`;
+        
+        // 临时修正：确保所有请求都使用HTTPS协议和正确域名
+        if (url.includes('152.70.115.148') || url.startsWith('http://')) {
+            const correctedUrl = url
+                .replace('http://', 'https://')
+                .replace('152.70.115.148', 'koreader.xuezhao.space');
+            console.log('🔧 URL协议修正:', url, '->', correctedUrl);
+            url = correctedUrl;
+        }
+        
         console.log('🌐 发起API请求:', url);
         
         try {
@@ -169,6 +191,7 @@ class KOReaderDashboard {
                     'Content-Type': 'application/json',
                     ...(this.authToken && { 'Authorization': `Bearer ${this.authToken}` })
                 },
+                redirect: 'manual', // 手动处理重定向
                 ...options
             };
             
@@ -176,11 +199,49 @@ class KOReaderDashboard {
                 url,
                 method: config.method || 'GET',
                 hasAuth: !!this.authToken,
-                headers: Object.keys(config.headers)
+                headers: Object.keys(config.headers),
+                redirect: config.redirect
             });
 
             const response = await fetch(url, config);
             console.log('📡 API响应状态:', response.status, response.statusText);
+            
+            // 处理重定向响应 (3xx状态码)
+            if (response.status >= 300 && response.status < 400) {
+                const location = response.headers.get('Location');
+                console.log('🔄 检测到重定向:', location);
+                
+                if (location) {
+                    // 修正重定向URL为HTTPS
+                    let correctedLocation = location;
+                    if (location.includes('152.70.115.148') || location.startsWith('http://')) {
+                        correctedLocation = location
+                            .replace('http://', 'https://')
+                            .replace('152.70.115.148', 'koreader.xuezhao.space');
+                        console.log('🔧 重定向URL修正:', location, '->', correctedLocation);
+                    }
+                    
+                    // 重新发起请求到修正后的URL
+                    console.log('🔄 重新请求修正后的URL:', correctedLocation);
+                    const redirectConfig = { ...config };
+                    delete redirectConfig.redirect; // 使用默认重定向处理
+                    
+                    const redirectResponse = await fetch(correctedLocation, redirectConfig);
+                    console.log('📡 重定向请求响应状态:', redirectResponse.status, redirectResponse.statusText);
+                    
+                    if (!redirectResponse.ok) {
+                        const errorText = await redirectResponse.text();
+                        console.error('❌ 重定向请求失败:', redirectResponse.status, errorText);
+                        throw new Error(`HTTP error! status: ${redirectResponse.status}, message: ${errorText}`);
+                    }
+                    
+                    const data = await redirectResponse.json();
+                    console.log('✅ 重定向请求成功:', endpoint, '数据大小:', JSON.stringify(data).length);
+                    return data;
+                } else {
+                    throw new Error(`重定向响应缺少Location头: ${response.status}`);
+                }
+            }
             
             if (!response.ok) {
                 const errorText = await response.text();
@@ -193,6 +254,44 @@ class KOReaderDashboard {
             return data;
         } catch (error) {
             console.error('❌ API请求异常:', endpoint, error);
+            
+            // 如果是Mixed Content错误，尝试修正URL后重试
+            if (error.message && error.message.includes('Mixed Content')) {
+                console.log('🔧 检测到Mixed Content错误，尝试修正URL重试...');
+                
+                // 显示Mixed Content警告
+                this.showMixedContentWarning();
+                
+                // 尝试修正URL并重试
+                const retryUrl = url
+                    .replace('http://', 'https://')
+                    .replace('152.70.115.148', 'koreader.xuezhao.space');
+                
+                if (retryUrl !== url) {
+                    console.log('🔄 重试修正后的URL:', retryUrl);
+                    try {
+                        const retryConfig = { ...options };
+                        delete retryConfig.redirect;
+                        
+                        const retryResponse = await fetch(retryUrl, {
+                            headers: {
+                                'Content-Type': 'application/json',
+                                ...(this.authToken && { 'Authorization': `Bearer ${this.authToken}` })
+                            },
+                            ...retryConfig
+                        });
+                        
+                        if (retryResponse.ok) {
+                            const data = await retryResponse.json();
+                            console.log('✅ 重试请求成功:', endpoint, '数据大小:', JSON.stringify(data).length);
+                            return data;
+                        }
+                    } catch (retryError) {
+                        console.error('❌ 重试请求也失败:', retryError);
+                    }
+                }
+            }
+            
             return null;
         }
     }
@@ -299,6 +398,70 @@ class KOReaderDashboard {
     }
 
     /**
+     * 显示Mixed Content警告（仅显示一次）
+     */
+    showMixedContentWarning() {
+        // 检查是否已经显示过警告
+        if (this.mixedContentWarningShown) {
+            return;
+        }
+        this.mixedContentWarningShown = true;
+
+        console.warn('⚠️ 检测到Mixed Content问题，建议修复反向代理配置');
+        
+        // 创建警告提示
+        const warningDiv = document.createElement('div');
+        warningDiv.id = 'mixed-content-warning';
+        warningDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            max-width: 400px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            z-index: 10000;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #856404;
+        `;
+        
+        warningDiv.innerHTML = `
+            <div style="margin-bottom: 10px;">
+                <strong>⚠️ Mixed Content 安全警告</strong>
+            </div>
+            <div style="margin-bottom: 10px;">
+                检测到API请求从HTTPS重定向到HTTP，浏览器已阻止该请求。
+            </div>
+            <div style="margin-bottom: 10px; font-size: 12px;">
+                <strong>建议修复反向代理配置：</strong><br>
+                1. 将proxy_pass改为HTTPS<br>
+                2. 修正proxy_set_header Host为域名
+            </div>
+            <button onclick="this.parentElement.remove()" style="
+                background: #ffc107;
+                border: none;
+                padding: 5px 10px;
+                border-radius: 4px;
+                cursor: pointer;
+                color: #856404;
+                font-size: 12px;
+            ">关闭</button>
+        `;
+        
+        document.body.appendChild(warningDiv);
+        
+        // 10秒后自动隐藏
+        setTimeout(() => {
+            if (warningDiv && warningDiv.parentNode) {
+                warningDiv.remove();
+            }
+        }, 10000);
+    }
+
+    /**
      * 加载所有数据
      */
     async loadData() {
@@ -330,8 +493,8 @@ class KOReaderDashboard {
     async loadRealData() {
         // 并行获取所有需要的数据
         const [summaryData, calendarData, trendsData, weeklyData, booksData] = await Promise.all([
-            this.apiRequest('/statistics/dashboard/summary'),
-            this.apiRequest('/statistics/calendar'),
+            this.apiRequest('/dashboard/summary'),
+            this.apiRequest('/dashboard/calendar'),
             this.apiRequest('/statistics/trends?days=30'),
             this.apiRequest('/statistics/weekly'),
             this.apiRequest('/books?page=1&page_size=20')
@@ -339,6 +502,15 @@ class KOReaderDashboard {
 
         if (!summaryData || !calendarData || !trendsData) {
             throw new Error('API数据获取失败');
+        }
+
+        // 详细日志输出书籍API的返回数据
+        console.log('📚 书籍API返回数据:', booksData);
+        console.log('📚 书籍数据类型:', typeof booksData);
+        console.log('📚 是否有books字段:', booksData && booksData.books);
+        if (booksData && booksData.books) {
+            console.log('📚 书籍数量:', booksData.books.length);
+            console.log('📚 第一本书示例:', booksData.books[0]);
         }
 
         // 转换API数据为前端格式
@@ -357,6 +529,7 @@ class KOReaderDashboard {
         this.updateStatsCards(this.chartData.summary);
         
         console.log('✅ 真实数据加载成功');
+        console.log('📚 最终书单数据:', this.chartData.readingList);
     }
 
     /**
@@ -443,31 +616,61 @@ class KOReaderDashboard {
      * 转换书籍列表数据格式
      */
     convertReadingListData(booksData) {
-        if (booksData && booksData.books) {
-            return booksData.books.map(book => {
-                const progress = book.reading_progress || 0;
-                const totalPages = book.total_pages || 0;
-                let currentPage = book.read_pages_count || 0;
-                
-                // 如果当前页数为0但有进度和总页数，从进度计算当前页数
-                if (currentPage === 0 && progress > 0 && totalPages > 0) {
-                    currentPage = Math.round(progress * totalPages / 100);
-                }
-                
-                return {
-                    id: book.id,
-                    title: book.title,
-                    author: book.author || '未知作者',
-                    cover: book.cover_image_url || '/default-book-cover.jpg',
-                    progress: progress,
-                    currentPage: currentPage,
-                    totalPages: totalPages,
-                    readingTime: book.total_reading_time || 0,
-                    lastRead: book.last_read_time
-                };
-            });
+        console.log('🔄 开始转换书籍列表数据...');
+        
+        if (!booksData) {
+            console.warn('⚠️ booksData为空，使用模拟数据');
+            return this.generateReadingListData();
         }
-        return this.generateReadingListData(); // 回退到模拟数据
+        
+        if (!booksData.books) {
+            console.warn('⚠️ booksData.books字段不存在，booksData结构:', Object.keys(booksData));
+            return this.generateReadingListData();
+        }
+        
+        if (!Array.isArray(booksData.books)) {
+            console.warn('⚠️ booksData.books不是数组，类型:', typeof booksData.books);
+            return this.generateReadingListData();
+        }
+        
+        if (booksData.books.length === 0) {
+            console.log('ℹ️ 书籍列表为空，返回空数组');
+            return [];
+        }
+        
+        console.log(`✅ 成功获取 ${booksData.books.length} 本书籍，开始转换格式...`);
+        
+        const convertedBooks = booksData.books.map((book, index) => {
+            console.log(`📖 转换第 ${index + 1} 本书:`, book.title);
+            
+            const progress = book.reading_progress || 0;
+            const totalPages = book.total_pages || 0;
+            let currentPage = book.read_pages_count || 0;
+            
+            // 如果当前页数为0但有进度和总页数，从进度计算当前页数
+            if (currentPage === 0 && progress > 0 && totalPages > 0) {
+                currentPage = Math.round(progress * totalPages / 100);
+                console.log(`📄 从进度计算当前页数: ${currentPage}页 (${progress}% × ${totalPages}页)`);
+            }
+            
+            const convertedBook = {
+                id: book.id,
+                title: book.title,
+                author: book.author || '未知作者',
+                cover: book.cover_image_url || '/default-book-cover.jpg',
+                progress: progress,
+                currentPage: currentPage,
+                totalPages: totalPages,
+                readingTime: book.total_reading_time || 0,
+                lastRead: book.last_read_time || new Date().toISOString()
+            };
+            
+            console.log(`✅ 转换完成:`, convertedBook);
+            return convertedBook;
+        });
+        
+        console.log('🎉 书籍列表转换完成，返回真实数据');
+        return convertedBooks;
     }
 
     /**
@@ -816,8 +1019,16 @@ class KOReaderDashboard {
                     }
                 }
                 
+                // 根据屏幕宽度动态调整截断长度
+                let maxTitleLength = 8; // 默认长度
+                if (window.innerWidth < 480) {
+                    maxTitleLength = 6; // 小屏幕更短
+                } else if (window.innerWidth < 768) {
+                    maxTitleLength = 7; // 中等屏幕稍短
+                }
+                
                 // 截取书名（太长的话）
-                const displayTitle = book.title.length > 10 ? book.title.substring(0, 10) + '...' : book.title;
+                const displayTitle = book.title.length > maxTitleLength ? book.title.substring(0, maxTitleLength) + '...' : book.title;
                 
                 return `<div class="${entryClass}" style="color: ${book.color};" title="${book.title} - ${book.author}&#10;阅读时长: ${book.time}">
                     <span class="book-shape">${book.shape}</span>
@@ -1031,15 +1242,24 @@ class KOReaderDashboard {
         const readingListContainer = document.getElementById('reading-list');
         const books = this.chartData.readingList;
 
+        console.log('📋 设置在读书单, 书籍数据:', books);
+        console.log('📋 书籍数量:', books ? books.length : 0);
+
         if (!books || books.length === 0) {
+            console.log('📋 书单为空，显示空状态');
             readingListContainer.innerHTML = `
                 <div class="empty-state" style="text-align: center; color: var(--text-muted); padding: 2rem;">
                     <div style="font-size: 2rem; margin-bottom: 1rem;">📚</div>
                     <div>暂无在读书籍</div>
+                    <div style="font-size: 0.875rem; margin-top: 1rem; opacity: 0.7;">
+                        可能原因：KOReader中还没有阅读记录，或者数据同步中...
+                    </div>
                 </div>
             `;
             return;
         }
+
+        console.log('📋 开始渲染书单...');
 
         const formatReadingTime = (seconds) => {
             const hours = Math.floor(seconds / 3600);
@@ -1096,6 +1316,8 @@ class KOReaderDashboard {
                 this.showBookDetail(bookId);
             });
         });
+        
+        console.log('✅ 书单渲染完成');
     }
 
     /**

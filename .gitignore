@@ -58,6 +58,7 @@ coverage.xml
 config.ini
 settings.ini
 local_settings.py
+reading-insights.service
 
 # 数据库文件
 *.db
@@ -99,6 +100,7 @@ yarn-error.log*
 dist/
 build/
 out/
+systemd/
 
 # 运行时生成的文件
 *.pid
