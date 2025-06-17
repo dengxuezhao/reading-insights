@@ -55,19 +55,23 @@ app = FastAPI(
 )
 
 # 添加CORS中间件
+cors_origins = ["http://localhost:8083", "http://127.0.0.1:8083"]  # 本地开发
+if settings.PROXY_DOMAIN:
+    cors_origins.append(settings.PROXY_DOMAIN)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 开发环境允许所有来源
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
-# 添加受信任主机中间件
-app.add_middleware(
-    TrustedHostMiddleware,
-    allowed_hosts=settings.ALLOWED_HOSTS,
-)
+# 添加受信任主机中间件（临时禁用以解决反向代理Host头问题）
+# app.add_middleware(
+#     TrustedHostMiddleware,
+#     allowed_hosts=settings.ALLOWED_HOSTS,
+# )
 
 # 注册API路由
 app.include_router(api_router, prefix="/api/v1")

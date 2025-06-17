@@ -4,15 +4,8 @@
 
 class KOReaderDashboard {
     constructor() {
-        // 自动检测当前访问地址，构建正确的API基础URL
-        this.baseURL = `${window.location.protocol}//${window.location.host}/api/v1`;
-        
-        // 确保baseURL使用HTTPS和正确的域名
-        this.baseURL = this.baseURL
-            .replace('http://', 'https://')
-            .replace('152.70.115.148', 'koreader.xuezhao.space');
-            
-        console.log('🔧 初始化baseURL:', this.baseURL);
+        this.baseURL = this.getBaseURL();
+        this.config = null; // 存储配置信息
         
         this.charts = {};
         this.currentUser = null;
@@ -22,6 +15,37 @@ class KOReaderDashboard {
         this.mixedContentWarningShown = false;
         
         this.init();
+    }
+
+    /**
+     * 获取基础URL
+     */
+    getBaseURL() {
+        return `${window.location.protocol}//${window.location.host}/api/v1`;
+    }
+
+    /**
+     * 加载配置信息
+     */
+    async loadConfig() {
+        try {
+            const response = await fetch(`${this.getBaseURL()}/public/config`);
+            if (response.ok) {
+                this.config = await response.json();
+                console.log('🔧 配置信息加载成功:', this.config);
+                
+                // 根据配置调整baseURL
+                if (this.config.proxy_domain && this.config.proxy_ip) {
+                    this.baseURL = this.baseURL
+                        .replace('http://', 'https://')
+                        .replace(this.config.proxy_ip, this.config.proxy_domain.replace('https://', ''));
+                }
+                
+                console.log('🔧 调整后的baseURL:', this.baseURL);
+            }
+        } catch (error) {
+            console.warn('⚠️ 配置信息加载失败，使用默认配置:', error);
+        }
     }
 
     /**
@@ -104,6 +128,9 @@ class KOReaderDashboard {
     async init() {
         this.setupEventListeners();
         
+        // 首先加载配置信息
+        await this.loadConfig();
+        
         // 确保认证令牌加载完成
         await this.loadAuthToken();
         
@@ -174,13 +201,15 @@ class KOReaderDashboard {
     async apiRequest(endpoint, options = {}) {
         let url = `${this.baseURL}${endpoint}`;
         
-        // 临时修正：确保所有请求都使用HTTPS协议和正确域名
-        if (url.includes('152.70.115.148') || url.startsWith('http://')) {
-            const correctedUrl = url
-                .replace('http://', 'https://')
-                .replace('152.70.115.148', 'koreader.xuezhao.space');
-            console.log('🔧 URL协议修正:', url, '->', correctedUrl);
-            url = correctedUrl;
+        // 使用配置进行URL修正
+        if (this.config && this.config.proxy_domain && this.config.proxy_ip) {
+            if (url.includes(this.config.proxy_ip) || url.startsWith('http://')) {
+                const correctedUrl = url
+                    .replace('http://', 'https://')
+                    .replace(this.config.proxy_ip, this.config.proxy_domain.replace('https://', ''));
+                console.log('🔧 URL协议修正:', url, '->', correctedUrl);
+                url = correctedUrl;
+            }
         }
         
         console.log('🌐 发起API请求:', url);
@@ -212,13 +241,17 @@ class KOReaderDashboard {
                 console.log('🔄 检测到重定向:', location);
                 
                 if (location) {
-                    // 修正重定向URL为HTTPS
+                    // 使用配置修正重定向URL
                     let correctedLocation = location;
-                    if (location.includes('152.70.115.148') || location.startsWith('http://')) {
-                        correctedLocation = location
-                            .replace('http://', 'https://')
-                            .replace('152.70.115.148', 'koreader.xuezhao.space');
-                        console.log('🔧 重定向URL修正:', location, '->', correctedLocation);
+                    if (this.config && this.config.proxy_domain && this.config.proxy_ip) {
+                        if (location.includes(this.config.proxy_ip) || location.startsWith('http://')) {
+                            correctedLocation = location
+                                .replace('http://', 'https://')
+                                .replace(this.config.proxy_ip, this.config.proxy_domain.replace('https://', ''));
+                            console.log('🔧 重定向URL修正:', location, '->', correctedLocation);
+                        }
+                    } else {
+                        console.warn('⚠️ 代理配置未设置，跳过URL修正');
                     }
                     
                     // 重新发起请求到修正后的URL
@@ -255,6 +288,16 @@ class KOReaderDashboard {
         } catch (error) {
             console.error('❌ API请求异常:', endpoint, error);
             
+            // 增强状态码0的错误诊断信息
+            if (error.message && error.message.includes('status: 0')) {
+                console.error('🔍 状态码0诊断信息:');
+                console.error('  - 可能原因1: CORS配置问题');
+                console.error('  - 可能原因2: 请求参数验证失败');
+                console.error('  - 可能原因3: 网络连接被阻断');
+                console.error('  - 请求URL:', url);
+                console.error('  - 请求端点:', endpoint);
+            }
+            
             // 如果是Mixed Content错误，尝试修正URL后重试
             if (error.message && error.message.includes('Mixed Content')) {
                 console.log('🔧 检测到Mixed Content错误，尝试修正URL重试...');
@@ -263,9 +306,12 @@ class KOReaderDashboard {
                 this.showMixedContentWarning();
                 
                 // 尝试修正URL并重试
-                const retryUrl = url
-                    .replace('http://', 'https://')
-                    .replace('152.70.115.148', 'koreader.xuezhao.space');
+                let retryUrl = url.replace('http://', 'https://');
+                if (this.config && this.config.proxy_domain && this.config.proxy_ip) {
+                    retryUrl = retryUrl.replace(this.config.proxy_ip, this.config.proxy_domain.replace('https://', ''));
+                } else {
+                    console.warn('⚠️ 代理配置未设置，无法进行URL修正重试');
+                }
                 
                 if (retryUrl !== url) {
                     console.log('🔄 重试修正后的URL:', retryUrl);
@@ -491,13 +537,30 @@ class KOReaderDashboard {
      * 加载真实API数据
      */
     async loadRealData() {
+        console.log('🔍 开始加载真实数据，当前认证令牌状态:', !!this.authToken);
+        console.log('🔍 当前用户信息:', this.currentUser);
+        
+        // 特别调试books API
+        console.log('📚 准备调用books API...');
+        console.log('📚 Books API URL:', `${this.baseURL}/books/?skip=0&limit=20`);
+        
         // 并行获取所有需要的数据
         const [summaryData, calendarData, trendsData, weeklyData, booksData] = await Promise.all([
             this.apiRequest('/dashboard/summary'),
             this.apiRequest('/dashboard/calendar'),
             this.apiRequest('/statistics/trends?days=30'),
             this.apiRequest('/statistics/weekly'),
-            this.apiRequest('/books?page=1&page_size=20')
+            (async () => {
+                console.log('📚 开始执行books API调用...');
+                try {
+                    const result = await this.apiRequest('/books/?skip=0&limit=20');
+                    console.log('📚 Books API调用成功，结果:', result);
+                    return result;
+                } catch (error) {
+                    console.error('📚 Books API调用失败:', error);
+                    return null;
+                }
+            })()
         ]);
 
         if (!summaryData || !calendarData || !trendsData) {

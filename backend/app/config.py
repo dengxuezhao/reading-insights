@@ -55,6 +55,10 @@ class Settings(BaseSettings):
     # 加密配置
     ENCRYPTION_KEY: str = Field(default="encryption-key-32-bytes-long!!!", description="加密密钥")
     
+    # 代理和域名配置
+    PROXY_DOMAIN: Optional[str] = Field(default=None, description="代理域名")
+    PROXY_IP: Optional[str] = Field(default=None, description="代理IP地址")
+    
     # 日志配置
     LOG_LEVEL: str = Field(default="INFO", description="日志级别")
     LOG_FILE: str = Field(default="logs/app.log", description="日志文件路径")

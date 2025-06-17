@@ -23,6 +23,8 @@ async def get_frontend_config():
         "demo_mode": settings.PUBLIC_DEMO_MODE,
         "default_user_enabled": settings.DEFAULT_USER_ENABLED,
         "webdav_configured": settings.has_webdav_config,
+        "proxy_domain": settings.PROXY_DOMAIN,
+        "proxy_ip": settings.PROXY_IP,
         "version": "1.0.0"
     }
 
